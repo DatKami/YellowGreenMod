@@ -9,7 +9,7 @@ namespace YellowGreenMod
     {
       get
       {
-        return new Color(0f, 0f, 0f);
+        return new Color(0f, 1f, 0f);
       }
     }
   }
