@@ -20,10 +20,12 @@ namespace YellowGreenMod
 
     public string Version
     {
-      get { return "0.0.1"; }
+      get { return "0.0.2"; }
     }
 
     private PlayerController _playerController;
+    private Color _leftColor;
+    private Color _rightColor;
     private GreenColorSO _greenColorSO;
     private YellowColorSO _yellowColorSO;
     private Material _blueSaberMat;
@@ -34,6 +36,8 @@ namespace YellowGreenMod
     private NoteMeshCutDebris[] _noteMeshCutDebris;
     private XWeaponTrail[] _weaponTrails;
     private BeatEffect[] _beatEffects;
+    private int _colorNoteVisualUpdateRate;
+    private int _colorNoteVisualUpdateCounter;
 
     private Plugin Instance = null;
     public string[] Filter { get; }
@@ -44,6 +48,10 @@ namespace YellowGreenMod
       SceneManager.activeSceneChanged += this.SceneManagerOnActiveSceneChanged;
       this._greenColorSO = ScriptableObject.CreateInstance<GreenColorSO>();
       this._yellowColorSO = ScriptableObject.CreateInstance<YellowColorSO>();
+      this._leftColor = new Color(1f, .8f, 0f);
+      this._rightColor = new Color(0f, 1f, 0f);
+      this._colorNoteVisualUpdateRate = 30;
+      this._colorNoteVisualUpdateCounter = 0;
     }
 
     public void OnApplicationQuit()
@@ -65,9 +73,6 @@ namespace YellowGreenMod
         this._blueSaberMat = source.FirstOrDefault((Material x) => x.name == "BlueSaber");
         this._redSaberMat = source.FirstOrDefault((Material x) => x.name == "RedSaber");
         Console.WriteLine("H");
-        //  this._blueNoteMat = source.FirstOrDefault((Material x) => x.name == "BlueGlowNote");
-        // this._redNoteMat = source.FirstOrDefault((Material x) => x.name == "RedGlowNote");
-        Console.WriteLine("I");
         Instance = this;
       }
 
@@ -84,8 +89,8 @@ namespace YellowGreenMod
       }
 
       Console.WriteLine("C");
-      this._redSaberMat.SetColor("_Color", new Color(1f, .8f, 0f, 1f));
-      this._blueSaberMat.SetColor("_Color", new Color(0f, 1f, 0f, 1f));
+      this._redSaberMat.SetColor("_Color", this._leftColor);
+      this._blueSaberMat.SetColor("_Color", this._rightColor);
       Console.WriteLine("G");
 
 
@@ -96,8 +101,6 @@ namespace YellowGreenMod
       ReflectionUtil.SetPrivateField(this._colorManager, "_colorA", new Color(1f, .8f, 0f, 1f));
       ReflectionUtil.SetPrivateField(this._colorManager, "_colorB", new Color(0f, 1f, 0f, 1f));
       Console.WriteLine("F");
-
-      Console.WriteLine("K");
 */
 
     }
@@ -112,86 +115,128 @@ namespace YellowGreenMod
 
     }
 
+    public Boolean CheckIsUnchangedRed(Color c)
+    {
+      return c.r > .9f && c.g < .5f && c.b < .5f;
+    }
+
+    public Boolean CheckIsUnchangedBlue(Color c) 
+    {
+      return c.b > .8f && c.r < .5f;
+    }
+
     public void OnUpdate()
     {
-      this._colorNoteVisuals = UnityEngine.Object.FindObjectsOfType<ColorNoteVisuals>();
       this._noteDebris = UnityEngine.Object.FindObjectsOfType<NoteDebris>();
       this._noteMeshCutDebris = UnityEngine.Object.FindObjectsOfType<NoteMeshCutDebris>();
       this._beatEffects = UnityEngine.Object.FindObjectsOfType<BeatEffect>();
-      foreach (ColorNoteVisuals cnv in _colorNoteVisuals)
+
+      // rate limit color note visual update to increase performance
+      _colorNoteVisualUpdateCounter += 1;
+      if (_colorNoteVisualUpdateCounter > _colorNoteVisualUpdateRate) 
       {
-        Console.WriteLine("J");
-        MaterialPropertyBlockController mbpc = ReflectionUtil.GetPrivateField<MaterialPropertyBlockController>(cnv, "_materialPropertyBlockController");
-        NoteController nc = ReflectionUtil.GetPrivateField<NoteController>(cnv, "_noteController");
-        NoteData.NoteType nt = nc.noteData.noteType;
-        if (nt == NoteData.NoteType.NoteA)
+        this._colorNoteVisuals = UnityEngine.Object.FindObjectsOfType<ColorNoteVisuals>();
+
+        _colorNoteVisualUpdateCounter = 0;
+        Console.WriteLine(_colorNoteVisualUpdateCounter);
+        foreach (ColorNoteVisuals cnv in _colorNoteVisuals)
         {
-          Console.WriteLine("M");
-          mbpc.materialPropertyBlock.SetColor("_Color", new Color(1f, .8f, 0f, .8f));
+          // Console.WriteLine("J");
+          MaterialPropertyBlockController mbpc = ReflectionUtil.GetPrivateField<MaterialPropertyBlockController>(cnv, "_materialPropertyBlockController");
+          NoteController nc = ReflectionUtil.GetPrivateField<NoteController>(cnv, "_noteController");
+          NoteData.NoteType nt = nc.noteData.noteType;
+          if (nt == NoteData.NoteType.NoteA)
+          {
+            // Console.WriteLine("M");
+            mbpc.materialPropertyBlock.SetColor("_Color", this._leftColor.ColorWithAlpha(.8f));
+          }
+          else if (nt == NoteData.NoteType.NoteB)
+          {
+            // Console.WriteLine("N");
+            mbpc.materialPropertyBlock.SetColor("_Color", this._rightColor.ColorWithAlpha(.8f));
+          }
+          // Console.WriteLine("L");
         }
-        else if (nt == NoteData.NoteType.NoteB)
-        {
-          Console.WriteLine("N");
-          mbpc.materialPropertyBlock.SetColor("_Color", new Color(0f, 1f, 0f, .8f));
-        }
-        Console.WriteLine("L");
       }
+
       foreach (NoteDebris nd in _noteDebris)
       {
-        Console.WriteLine("O");
+        // Console.WriteLine("O");
         MaterialPropertyBlockController mbpc = ReflectionUtil.GetPrivateField<MaterialPropertyBlockController>(nd, "_materialPropertyBlockController");
         MaterialPropertyBlock mbp = mbpc.materialPropertyBlock;
         Color c = mbp.GetColor("_Color"); 
 
-        if (c.r > .9f && c.g < .5f) // match red, but not yellow, green or blue
+        if (CheckIsUnchangedRed(c))
         {
-          Console.WriteLine("P");
-          mbp.SetColor("_Color", new Color(1f, .8f, 0f, .8f));
+          // Console.WriteLine("P");
+          mbp.SetColor("_Color", this._leftColor.ColorWithAlpha(.8f));
         }
-        else if (c.b > .8f) //match blue, but not yellow, green, or red
+        else if (CheckIsUnchangedBlue(c))
         {
-          Console.WriteLine("Q");
-          mbp.SetColor("_Color", new Color(0f, 1f, 0f, .8f));
+          // Console.WriteLine("Q");
+          mbp.SetColor("_Color", this._rightColor.ColorWithAlpha(.8f));
         }
-        Console.WriteLine("R");
+        // Console.WriteLine("R");
       }
 
       foreach (NoteMeshCutDebris nd in _noteMeshCutDebris)
       {
-        Console.WriteLine("S");
+        // Console.WriteLine("S");
         MaterialPropertyBlockController mbpc = ReflectionUtil.GetPrivateField<MaterialPropertyBlockController>(nd, "_materialPropertyBlockController");
         MaterialPropertyBlock mbp = mbpc.materialPropertyBlock;
         Color c = mbp.GetColor("_CutoutEdgeColor");
 
-        if (c.r > .9f && c.g < .5f) // match red, but not yellow, green or blue
+        if (CheckIsUnchangedRed(c))
         {
-          Console.WriteLine("T");
-          mbp.SetColor("_CutoutEdgeColor", new Color(1f, .8f, 0f, .8f));
+          // Console.WriteLine("T");
+          mbp.SetColor("_CutoutEdgeColor", this._leftColor.ColorWithAlpha(.8f));
         }
-        else if (c.b > .8f) //match blue, but not yellow, green, or red
+        else if (CheckIsUnchangedBlue(c))
         {
-          Console.WriteLine("U");
-          mbp.SetColor("_CutoutEdgeColor", new Color(0f, 1f, 0f, .8f));
+          // Console.WriteLine("U");
+          mbp.SetColor("_CutoutEdgeColor", this._rightColor.ColorWithAlpha(.8f));
         }
-        Console.WriteLine("V");
+        // Console.WriteLine("V");
       }
 
       foreach (XWeaponTrail wt in _weaponTrails)
       {
-        Console.WriteLine("W");
+        // Console.WriteLine("W");
         Color c = ReflectionUtil.GetPrivateField<Color>(wt, "MyColor");
 
-        if (c.r > .9f && c.g < .5f) // match red, but not yellow, green, blue, or white
+        if (CheckIsUnchangedRed(c))
         {
-          Console.WriteLine("X");
-          ReflectionUtil.SetPrivateField(wt, "MyColor", new Color(1f, .8f, 0f, .8f));
+          // Console.WriteLine("X");
+          ReflectionUtil.SetPrivateField(wt, "MyColor", this._leftColor.ColorWithAlpha(.8f));
         }
-        else if (c.b > .8f && c.r < .5f) //match blue, but not yellow, green. red, or white
+        else if (CheckIsUnchangedBlue(c))
         {
-          Console.WriteLine("Y");
-          ReflectionUtil.SetPrivateField(wt, "MyColor", new Color(0f, 1f, 0f, .8f));
+          // Console.WriteLine("Y");
+          ReflectionUtil.SetPrivateField(wt, "MyColor", this._rightColor.ColorWithAlpha(.8f));
         }
-        Console.WriteLine("Z");
+        // Console.WriteLine("Z");
+      }
+
+      foreach (BeatEffect be in _beatEffects)
+      {
+        // Console.WriteLine("AA");
+        SpriteRenderer[] srs = ReflectionUtil.GetPrivateField<SpriteRenderer[]>(be, "_spriteRenderers");
+
+        foreach (SpriteRenderer sr in srs)
+        {
+          Color c = sr.color;
+          if (CheckIsUnchangedRed(c))
+          {
+            // Console.WriteLine("AB");
+            sr.color = this._leftColor;
+          }
+          else if (CheckIsUnchangedBlue(c))
+          {
+            // Console.WriteLine("AC");
+            sr.color = this._rightColor;
+          }
+          // Console.WriteLine("AD");
+        }
       }
     }
 
