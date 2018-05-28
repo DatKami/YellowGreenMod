@@ -48,8 +48,8 @@ namespace YellowGreenMod
       SceneManager.activeSceneChanged += this.SceneManagerOnActiveSceneChanged;
       this._greenColorSO = ScriptableObject.CreateInstance<GreenColorSO>();
       this._yellowColorSO = ScriptableObject.CreateInstance<YellowColorSO>();
-      this._leftColor = new Color(1f, 0f, 1f);
-      this._rightColor = new Color(0f, 1f, 0f);
+      this._leftColor = new Color(1f, 1f, 1f);
+      this._rightColor = new Color(0f, 0f, 0f);
       this._colorNoteVisualUpdateRate = 30;
       this._colorNoteVisualUpdateCounter = 0;
     }
@@ -80,17 +80,18 @@ namespace YellowGreenMod
       this._lightSwitches = UnityEngine.Object.FindObjectsOfType<LightSwitchEventEffect>();
       foreach (LightSwitchEventEffect lightSwitch in this._lightSwitches)
       {
+        // set background lights to white color so players can always see lightshow
         Console.WriteLine("Found lightswitch");
         ReflectionUtil.SetPrivateField(lightSwitch, "_lightColor0", this._yellowColorSO);
-        ReflectionUtil.SetPrivateField(lightSwitch, "_lightColor1", this._greenColorSO);
+        ReflectionUtil.SetPrivateField(lightSwitch, "_lightColor1", this._yellowColorSO);
         ReflectionUtil.SetPrivateField(lightSwitch, "_highlightColor0", this._yellowColorSO);
-        ReflectionUtil.SetPrivateField(lightSwitch, "_highlightColor1", this._greenColorSO);
+        ReflectionUtil.SetPrivateField(lightSwitch, "_highlightColor1", this._yellowColorSO);
         Console.WriteLine("Set Lightswitches");
       }
 
       Console.WriteLine("C");
       this._redSaberMat.SetColor("_Color", this._leftColor);
-      this._blueSaberMat.SetColor("_Color", this._rightColor);
+      this._blueSaberMat.SetColor("_Color", this._leftColor);
       Console.WriteLine("G");
 
 
