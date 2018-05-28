@@ -48,7 +48,7 @@ namespace YellowGreenMod
       SceneManager.activeSceneChanged += this.SceneManagerOnActiveSceneChanged;
       this._greenColorSO = ScriptableObject.CreateInstance<GreenColorSO>();
       this._yellowColorSO = ScriptableObject.CreateInstance<YellowColorSO>();
-      this._leftColor = new Color(1f, .8f, 0f);
+      this._leftColor = new Color(1f, 0f, 1f);
       this._rightColor = new Color(0f, 1f, 0f);
       this._colorNoteVisualUpdateRate = 30;
       this._colorNoteVisualUpdateCounter = 0;
